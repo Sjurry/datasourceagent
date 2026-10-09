@@ -1,0 +1,30 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Authority Trace</title><style>
+body{font-family:system-ui;margin:0;background:#0f1420;color:#e8ecf4}header{padding:16px 24px;border-bottom:1px solid #263}.wrap{display:grid;grid-template-columns:420px 1fr;gap:16px;padding:16px 24px}textarea,input{width:100%;background:#182034;color:#fff;border:1px solid #2c3a5c;border-radius:8px;padding:8px}button{background:#3b82f6;color:#fff;border:0;border-radius:8px;padding:10px 16px;cursor:pointer}.card{background:#161e32;border:1px solid #2c3a5c;border-radius:12px;padding:12px;margin-bottom:12px}.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px}.direct{background:#14532d}.indirect{background:#713f12}.gov{background:#1d4ed8}.pill{font-size:12px;opacity:.8}
+pre{white-space:pre-wrap;font-size:12px;opacity:.9}
+</style></head><body>
+<header><b>🔍 Authority Trace 可视化</b> <span class="pill">classify → 双路搜索 → loop≤4 → 候选排序</span></header>
+<div class="wrap">
+<div>
+<label>标题</label><input id="title" value="中国科学院发布十五五发展规划">
+<label>标题CN</label><input id="title_cn">
+<label>正文/摘要</label><textarea id="content" rows="14">聚焦抢占科技制高点，人工智能赋能科研创新</textarea>
+<label>时间范围</label><select id="timeRange"><option value="1d">最近1天</option><option value="3d">最近3天</option><option value="7d" selected>最近7天</option><option value="30d">最近30天</option><option value="month">最近一个月</option><option value="unlimited">不限时间</option></select>
+<button onclick="run()">开始溯源</button>
+<div id="status" class="pill"></div>
+</div>
+<div id="out"></div>
+</div>
+<script>
+async function run(){
+  document.getElementById('status').textContent='溯源中…';
+  const body={title:title.value,title_cn:title_cn.value,content:content.value,content_cn:null,summary:null,summary_cn:null,timeRange:document.getElementById('timeRange').value};
+  const r=await fetch('/api/trace',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json();
+  document.getElementById('status').textContent='完成 intent='+j.intent+' claims='+j.claims?.length;
+  document.getElementById('out').innerHTML=(j.claims||[]).map(c=>`<div class="card">📌 ${c}</div>`).join('')+(j.candidates||[]).map(c=>`
+  <div class="card"><span class="badge ${c.supportLevel}">${c.supportLevel}</span> <span class="badge gov">${c.sourceType} Lv.${c.authorityLevel}</span> <b>${c.score}分</b>
+  <div><a href="${c.url}" target="_blank" style="color:#93c5fd">${c.title}</a></div>
+  <div class="pill">${c.publisher} · ${c.url}</div><pre>${c.evidence}</pre><div>${c.explanation}</div></div>`).join('');
+}
+</script></body></html>
